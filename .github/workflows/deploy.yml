@@ -1,0 +1,44 @@
+name: Deploy to Homelab
+
+on:
+  push:
+    branches: [ "main" ]
+
+jobs:
+  build-and-deploy:
+    runs-on: self-hosted
+    
+    steps:
+    - name: Checkout do código
+      uses: actions/checkout@v4
+
+    - name: Configurar Java 21
+      uses: actions/setup-java@v4
+      with:
+        distribution: 'temurin'
+        java-version: '21'
+
+    - name: Dar permissão ao Gradle
+      run: chmod +x gradlew
+
+    # [SEGURANÇA] Cria o arquivo .env com os segredos DO GITHUB
+    - name: Criar arquivo .env com Segredos
+      run: |
+        echo "DB_USER=${{ secrets.DB_USER }}" > .env
+        echo "DB_PASSWORD=${{ secrets.DB_PASSWORD }}" >> .env
+        echo "DB_NAME=${{ secrets.DB_NAME }}" >> .env
+        
+    - name: Construir Imagem Docker
+      run: ./gradlew bootBuildImage --imageName=meetups-calendar:latest
+
+    - name: Atualizar Containers
+      # O docker compose lê automaticamente o arquivo .env criado acima
+      run: docker compose up -d --force-recreate
+    
+    - name: Limpeza de Imagens
+      run: docker image prune -f
+
+    # [OPCIONAL] Remove o arquivo .env após o uso para não ficar no disco
+    - name: Apagar segredos do disco
+      if: always()
+      run: rm .env
