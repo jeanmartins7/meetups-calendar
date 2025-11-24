@@ -1,0 +1,36 @@
+services:
+  app:
+    image: meetups-calendar:latest
+    container_name: meetups-app
+    restart: always
+    ports:
+      - "8080:8080"
+    environment:
+      - SPRING_PROFILES_ACTIVE=dev
+      # Note a sintaxe ${NOME_VARIAVEL}. O Docker vai ler do .env
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://db:5432/${DB_NAME}
+      - SPRING_DATASOURCE_USERNAME=${DB_USER}
+      - SPRING_DATASOURCE_PASSWORD=${DB_PASSWORD}
+    depends_on:
+      - db
+    networks:
+      - meetups-net
+
+  db:
+    image: postgres:15-alpine
+    container_name: meetups-db
+    restart: always
+    environment:
+      - POSTGRES_USER=${DB_USER}
+      - POSTGRES_PASSWORD=${DB_PASSWORD}
+      - POSTGRES_DB=${DB_NAME}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    networks:
+      - meetups-net
+
+volumes:
+  pgdata:
+
+networks:
+  meetups-net:
